@@ -1,0 +1,14 @@
+# Next.js
+.next/
+out/
+node_modules/
+.env
+.env.local
+.env.*.local
+
+# Data files written by API routes
+server/data/
+
+# Misc
+.DS_Store
+*.log
