@@ -9,8 +9,9 @@ export const SUMMARY = {
   results: { optimal: 41, normal: 25, outOfRange: 6, asOf: '24 Apr' },
 }
 
-// Only "Home" remains in the top bar (Data/Concierge/Services removed per request).
-export const TOP_TABS = ['Home']
+
+
+// keep CATEGORY_TABS, BIOMARKERS, STATUS_META exactly as they are
 
 export const CATEGORY_TABS = [
   'Blood', 'Genetic', 'Gut', 'Toxins', 'Allergies', 'VO2 Max', 'Cancer', 'Glucose', 'MRI', 'DEXA',
