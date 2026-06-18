@@ -180,20 +180,19 @@ function CombinedReportsTimelinePage() {
 }
 
 /* Main dashboard */
-const DATA_NAV = ['Longevity Markers','Heart Health','Thyroid Health','Immune Regulation','Hormone Health','Metabolic Health','Nutrients','Liver Health','Kidney Health','Inflammation','Blood']
-const BIOMARKER_TABS = ['Duramater Score', 'All Data', ...DATA_NAV]
+const DATA_NAV = ['Heart Health','Thyroid Health','Immune Health','Hormone Health','Metabolic Health','Nutrient Status','Liver Health','Kidney Health','Inflammation Markers','Hematology']
+const BIOMARKER_TABS = ['Duramater Score', 'All Biomarkers', ...DATA_NAV]
 const CATEGORY_MAP = {
-  'Longevity Markers': 'Overview',
   'Heart Health': 'Cardiometabolic',
   'Thyroid Health': 'Thyroid',
-  'Immune Regulation': 'Energy & Blood',
+  'Immune Health': 'Energy & Blood',
   'Hormone Health': 'Hormones',
   'Metabolic Health': 'Metabolic',
-  'Nutrients': 'Energy & Blood',
+  'Nutrient Status': 'Energy & Blood',
   'Liver Health': 'Liver',
   'Kidney Health': 'Kidney',
-  'Inflammation': 'Cardiometabolic',
-  'Blood': 'Energy & Blood',
+  'Inflammation Markers': 'Cardiometabolic',
+  'Hematology': 'Energy & Blood',
 }
 
 export default function Dashboard() {
@@ -203,7 +202,7 @@ export default function Dashboard() {
   const signOut = () => {}
 
   const [tab, setTab] = useState('Overview')
-  const [dataNav, setDataNav] = useState('All Data')
+  const [dataNav, setDataNav] = useState('All Biomarkers')
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [report, setReport] = useState(null)
@@ -220,7 +219,7 @@ export default function Dashboard() {
   const isScoreTab = dataNav === 'Duramater Score'
 
   const categoryRows = useMemo(() => {
-    if (dataNav === 'All Data') return rows
+    if (dataNav === 'All Biomarkers') return rows
     if (isScoreTab) return []
     const system = CATEGORY_MAP[dataNav]
     return rows.filter((b) =>
@@ -339,8 +338,8 @@ export default function Dashboard() {
               <div className="dm-biomarker-section">
                 <div className="dm-bm-section-head">
                   <div>
-                    <h2 className="dm-bm-title">Biomarkers</h2>
-                    <p className="dm-bm-subtitle">Track your biomarker performance with category tabs and status insights.</p>
+                    <h2 className="dm-bm-title">Biomarker Overview</h2>
+                    <p className="dm-bm-subtitle">Review clinical markers by category, status, and trend for a clearer health snapshot.</p>
                   </div>
                   <div className="dm-bm-tabs">
                     {BIOMARKER_TABS.map(item => (
@@ -386,7 +385,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="dash-controls">
-                      <div className="dash-search"><span aria-hidden>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search biomarkers…" /></div>
+                      <div className="dash-search"><span aria-hidden>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search biomarkers or categories…" /></div>
                       <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
                         <option value="all">All statuses</option>
                         <option value="optimal">Optimal</option>
@@ -396,7 +395,7 @@ export default function Dashboard() {
                     </div>
 
                     <div className="dash-table">
-                      <div className="dash-trow dash-thead"><span>Name</span><span>Status</span><span>Value</span><span>Optimal range</span><span>History</span></div>
+                      <div className="dash-trow dash-thead"><span>Marker</span><span>Status</span><span>Result</span><span>Reference range</span><span>Trend</span></div>
                       {groups.length === 0 && <div className="dash-empty">No markers match your search.</div>}
                       {groups.map(([system, items]) => (
                         <div key={system}>
