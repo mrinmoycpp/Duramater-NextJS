@@ -1,10 +1,17 @@
 'use client'
 export const dynamic = 'force-dynamic'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { BRAND } from '../data/content.js'
 import { SUMMARY, BIOMARKERS, STATUS_META } from '../data/dashboard.js'
+
+const NOTIFICATIONS = [
+  { id: 1, icon: '🧬', title: 'Blood panel ready', body: 'Your Apr 2025 results are now available.', time: '2h ago', unread: true },
+  { id: 2, icon: '📋', title: 'Physician note added', body: 'Dr. Patel left a note on your ApoB marker.', time: '1d ago', unread: true },
+  { id: 3, icon: '💊', title: 'Supplement reminder', body: 'Take your Vitamin D — 3 days streak!', time: '2d ago', unread: false },
+  { id: 4, icon: '📈', title: 'Score improved', body: 'Duramater score rose from 68 → 72.', time: '5d ago', unread: false },
+]
 
 function Sparkline({ history, color }) {
   const w = 84, h = 28, pad = 3
@@ -26,7 +33,7 @@ function Sparkline({ history, color }) {
 
 /* Sidebar */
 const SIDE_MENU = [
-  { id: 'Overview', label: 'Overview', icon: '⊞' },
+  { id: 'Overview', label: 'Home', icon: '⊞' },
   { id: 'Plan',      label: 'Plan',       icon: '☰' },
   { id: 'Services',  label: 'Services',   icon: '✦' },
   { id: 'Reports',   label: 'Reports',    icon: '📋' },
@@ -188,11 +195,37 @@ const CATEGORY_MAP = {
   'Immune Health': 'Energy & Blood',
   'Hormone Health': 'Hormones',
   'Metabolic Health': 'Metabolic',
-  'Nutrient Status': 'Energy & Blood',
+  'Nutrient Status': 'Nutrient Status',
   'Liver Health': 'Liver',
   'Kidney Health': 'Kidney',
-  'Inflammation Markers': 'Cardiometabolic',
-  'Hematology': 'Energy & Blood',
+  'Inflammation Markers': 'Inflammation',
+  'Hematology': 'Hematology',
+}
+
+const CATEGORY_SCORES = {
+  'Heart Health':          88,
+  'Thyroid Health':        92,
+  'Immune Health':         79,
+  'Hormone Health':        85,
+  'Metabolic Health':      74,
+  'Nutrient Status':       83,
+  'Liver Health':          91,
+  'Kidney Health':         95,
+  'Inflammation Markers':  77,
+  'Hematology':            86,
+}
+
+const CATEGORY_INSIGHTS = {
+  'Heart Health':          'Risk of cardiovascular event in the next 10 years is estimated at ~8%.',
+  'Thyroid Health':        'Risk of hypothyroidism based on current TSH trend is approximately 10%.',
+  'Immune Health':         'Immune response markers are mildly suppressed — monitoring advised.',
+  'Hormone Health':        'Testosterone levels are within range; cortisol slightly elevated.',
+  'Metabolic Health':      'Insulin sensitivity is borderline — dietary adjustments recommended.',
+  'Nutrient Status':       'Vitamin D deficiency detected; B12 levels are optimal.',
+  'Liver Health':          'Liver enzymes are within normal range; no signs of hepatic stress.',
+  'Kidney Health':         'Kidney filtration rate (eGFR) is excellent at 98 mL/min/1.73m².',
+  'Inflammation Markers':  'Mild systemic inflammation detected; CRP elevated at 2.4 mg/L.',
+  'Hematology':            'Blood cell counts are healthy; haemoglobin is optimal for your age.',
 }
 
 export default function Dashboard() {
@@ -207,6 +240,20 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [report, setReport] = useState(null)
   const fileRef = useRef(null)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [notifications, setNotifications] = useState(NOTIFICATIONS)
+  const notifRef = useRef(null)
+
+  const unreadCount = notifications.filter(n => n.unread).length
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, unread: false })))
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -244,15 +291,15 @@ export default function Dashboard() {
   const onUpload = (e) => { const f = e.target.files?.[0]; if (f) setReport({ name: f.name }); e.target.value = '' }
 
   return (
-    <div className="dm-layout">
+    <div style={{ display: 'flex', flexDirection: 'row', minHeight: '100vh', background: 'var(--cream)' }}>
       <aside className="dm-sidebar">
         <div className="dm-sb-logo" onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>{BRAND.wordmark}</div>
         <div className="dm-sb-section">
-          <div className="dm-sb-label">Menu</div>
+          <div className="dm-sb-label">Biomarkers</div>
           <nav className="dm-sb-nav">
-            {SIDE_MENU.map((item, i) => (
-              <a key={i} className={tab === item.id ? 'active' : ''} onClick={() => onTab(item.id)}>
-                <span className="dm-nav-icon">{item.icon}</span>{item.label}
+            {BIOMARKER_TABS.map((item, i) => (
+              <a key={i} className={dataNav === item ? 'active' : ''} onClick={() => setDataNav(item)}>
+                {item}
               </a>
             ))}
           </nav>
@@ -267,8 +314,83 @@ export default function Dashboard() {
         </div>
       </aside>
 
-      <div className="dm-main">
-        <div className="dm-content">
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+      <header className={`nav scrolled`} style={{ position: 'sticky', top: 12, zIndex: 60 }}>
+        <div className="container">
+          <a className="wordmark" onClick={() => router.push('/')} style={{ cursor: 'pointer' }}>
+            {BRAND.wordmark}
+          </a>
+
+          <nav className="nav-links">
+            {SIDE_MENU.map((item, i) => (
+              <a
+                key={i}
+                onClick={() => onTab(item.id)}
+                style={{
+                  cursor: 'pointer',
+                  opacity: tab === item.id ? 1 : 0.6,
+                  fontWeight: tab === item.id ? 600 : 500,
+                  borderBottom: tab === item.id ? '2px solid var(--ink)' : '2px solid transparent',
+                  paddingBottom: 2,
+                  transition: 'all 0.2s'
+                }}
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          <div className="nav-right">
+            {/* Notification Bell */}
+            <div className="nav-notif-wrap" ref={notifRef}>
+              <button
+                className="nav-notif-btn"
+                aria-label="Notifications"
+                onClick={() => setNotifOpen(v => !v)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                </svg>
+                {unreadCount > 0 && <span className="nav-notif-badge">{unreadCount}</span>}
+              </button>
+
+              {notifOpen && (
+                <div className="nav-notif-dropdown">
+                  <div className="nav-notif-header">
+                    <span>Notifications</span>
+                    {unreadCount > 0 && (
+                      <button className="nav-notif-markread" onClick={markAllRead}>Mark all read</button>
+                    )}
+                  </div>
+                  <div className="nav-notif-list">
+                    {notifications.map(n => (
+                      <div key={n.id} className={`nav-notif-item${n.unread ? ' unread' : ''}`}>
+                        <div className="nav-notif-icon">{n.icon}</div>
+                        <div className="nav-notif-body">
+                          <div className="nav-notif-title">{n.title}</div>
+                          <div className="nav-notif-text">{n.body}</div>
+                          <div className="nav-notif-time">{n.time}</div>
+                        </div>
+                        {n.unread && <div className="nav-notif-dot" />}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Profile Circle */}
+            <button className="nav-profile-btn" aria-label="Profile">
+              {user.name?.[0]?.toUpperCase() ?? 'D'}
+            </button>
+
+          </div>
+        </div>
+      </header>
+
+        <div style={{ flex: 1 }}>
+          <div className="dm-content">
           {tab === 'Plan' && <PlanPage />}
           {tab === 'Services' && <ServicesPage />}
           {tab === 'Reports' && <CombinedReportsTimelinePage />}
@@ -276,7 +398,13 @@ export default function Dashboard() {
             <div>
               <div className="dash-head">
                 <h1>Welcome, {user.name.split(' ')[0]}</h1>
-                <button className="dash-records">▣ Health Records</button>
+                {report ? (
+                  <div className="dash-uploaded" style={{ margin: 0 }}>✓ <b>{report.name}</b> processed
+                    <button className="dash-reupload" onClick={() => fileRef.current?.click()}>Upload another</button>
+                  </div>
+                ) : (
+                  <button className="dash-records" onClick={() => fileRef.current?.click()}>↑ Upload Lab Report</button>
+                )}
               </div>
 
               <div className="dm-hero-cards">
@@ -323,32 +451,9 @@ export default function Dashboard() {
               </div>
 
               <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={onUpload} />
-              {report ? (
-                <div className="dash-uploaded">✓ <b>{report.name}</b> processed — {BIOMARKERS.length} biomarkers fed into your dashboard.
-                  <button className="dash-reupload" onClick={() => fileRef.current?.click()}>Upload another</button>
-                </div>
-              ) : (
-                <button className="dash-upload-zone" onClick={() => fileRef.current?.click()}>
-                  <span className="duz-icon" aria-hidden>↑</span>
-                  <span className="duz-text"><b>Upload your lab report</b><span>PDF or image — we&apos;ll auto-fill your biomarker values</span></span>
-                  <span className="duz-cta">Upload report</span>
-                </button>
-              )}
 
               <div className="dm-biomarker-section">
-                <div className="dm-bm-section-head">
-                  <div>
-                    <h2 className="dm-bm-title">Biomarker Overview</h2>
-                    <p className="dm-bm-subtitle">Review clinical markers by category, status, and trend for a clearer health snapshot.</p>
-                  </div>
-                  <div className="dm-bm-tabs">
-                    {BIOMARKER_TABS.map(item => (
-                      <button key={item} type="button" className={dataNav === item ? 'active' : ''} onClick={() => setDataNav(item)}>
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
 
                 {isScoreTab ? (
                   <div className="dm-bm-score-card">
@@ -372,17 +477,17 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    <div className="dm-bm-counts">
-                      <div className="dm-bm-ci"><div className="dm-bm-n">{sectionStats.total}</div><div className="dm-bm-l">Total</div></div>
-                      <div className="dm-bm-ci"><div className="dm-bm-n">{sectionStats.optimal}</div><div className="dm-bm-l">Optimal</div></div>
-                      <div className="dm-bm-ci"><div className="dm-bm-n">{sectionStats.normal}</div><div className="dm-bm-l">In range</div></div>
-                      <div className="dm-bm-ci"><div className="dm-bm-n">{sectionStats.out}</div><div className="dm-bm-l">Out of range</div></div>
-                    </div>
-                    <div className="dm-bm-strip">
-                      <div style={{ flex: sectionStats.optimal || 1, background: '#3ecf8e', height: 5, borderRadius: 3 }} />
-                      <div style={{ flex: sectionStats.normal || 1, background: '#f0d060', height: 5, borderRadius: 3 }} />
-                      <div style={{ flex: sectionStats.out || 1, background: '#d56aa6', height: 5, borderRadius: 3 }} />
-                    </div>
+
+                    {/* Category Section Heading */}
+                    {dataNav !== 'All Biomarkers' && CATEGORY_MAP[dataNav] && (
+                      <div className="dm-cat-heading">
+                        <div className="dm-cat-title-row">
+                          <h2 className="dm-cat-title">{CATEGORY_MAP[dataNav]}</h2>
+                          <span className="dm-cat-score-inline">{CATEGORY_SCORES[dataNav]}<span className="dm-cat-score-of">/100</span></span>
+                        </div>
+                        <p className="dm-cat-insight">{CATEGORY_INSIGHTS[dataNav]}</p>
+                      </div>
+                    )}
 
                     <div className="dash-controls">
                       <div className="dash-search"><span aria-hidden>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search biomarkers or categories…" /></div>
@@ -420,6 +525,7 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>
