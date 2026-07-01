@@ -8,9 +8,20 @@ const HASH_ITERATIONS = 120000
 const HASH_LENGTH = 32
 const HASH_DIGEST = 'sha256'
 
-fs.mkdirSync(DATA_DIR, { recursive: true })
+// Only create directory if not in Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true })
+  } catch (e) {
+    // Ignore directory creation errors
+  }
+}
 
 function readUsers() {
+  // In Vercel serverless environment, return empty array
+  if (process.env.VERCEL === '1') {
+    return []
+  }
   try {
     const users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'))
     return Array.isArray(users) ? users : []
@@ -20,6 +31,10 @@ function readUsers() {
 }
 
 function writeUsers(users) {
+  // In Vercel serverless environment, cannot write to filesystem
+  if (process.env.VERCEL === '1') {
+    throw new Error('Filesystem operations not supported in Vercel. Please configure a database.')
+  }
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2))
 }
 

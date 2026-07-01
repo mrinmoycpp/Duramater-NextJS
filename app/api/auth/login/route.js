@@ -21,13 +21,23 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 })
   }
 
-  const user = findUserByCredentials(email, password)
-  if (!user) {
-    return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
-  }
+  try {
+    const user = findUserByCredentials(email, password)
+    if (!user) {
+      return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
+    }
 
-  const token = await signAuthToken(user)
-  const response = NextResponse.json({ token, user })
-  setAuthCookie(response, token)
-  return response
+    const token = await signAuthToken(user)
+    const response = NextResponse.json({ token, user })
+    setAuthCookie(response, token)
+    return response
+  } catch (error) {
+    if (error.message.includes('Filesystem operations not supported')) {
+      return NextResponse.json(
+        { error: 'Email/password authentication is not configured. Please use Google OAuth or configure a database.' },
+        { status: 503 }
+      )
+    }
+    return NextResponse.json({ error: 'Authentication failed.' }, { status: 500 })
+  }
 }

@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server'
 import { signAuthToken } from '../../../../lib/authToken.js'
 
 function getOrigin(request) {
+  // In production, use the request origin to avoid localhost redirects
+  if (process.env.NODE_ENV === 'production') {
+    return new URL(request.url).origin
+  }
   return process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
 }
 
