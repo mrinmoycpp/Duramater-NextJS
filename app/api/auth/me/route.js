@@ -4,7 +4,7 @@ import { verifyAuthToken } from '../../../lib/authToken.js'
 export async function GET(request) {
   const auth = request.headers.get('authorization') || ''
   const token = auth.startsWith('Bearer ') ? auth.slice(7) : request.cookies.get('auth_token')?.value
-  const user = verifyAuthToken(token)
+  const user = await verifyAuthToken(token)
 
   if (!user) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })

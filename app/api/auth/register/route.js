@@ -33,7 +33,7 @@ export async function POST(request) {
     return NextResponse.json({ error: result.error }, { status: 409 })
   }
 
-  const token = signAuthToken(result.user)
+  const token = await signAuthToken(result.user)
   const response = NextResponse.json({ token, user: result.user })
   setAuthCookie(response, token)
   return response

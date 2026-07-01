@@ -18,7 +18,6 @@ export const NAV_LINKS = [
   { label: 'What We Test', href: '#what-we-test' },
   { label: 'Pricing', href: '#pricing' },
   { label: 'FAQs', href: '#faqs' },
-  { label: 'Scoring Engine', href: '/scoring-engine' },
 ]
 // --- "How it works" 5-card carousel (designed card images) ----------------
 export const HIW_CARDS = [

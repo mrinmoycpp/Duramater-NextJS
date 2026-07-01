@@ -12,6 +12,7 @@ function base64urlToJson(value) {
   return JSON.parse(text)
 }
 
+
 async function verifyAuthToken(token) {
   if (!token || typeof token !== 'string') return null
 
@@ -22,6 +23,7 @@ async function verifyAuthToken(token) {
   const unsigned = `${header}.${payload}`
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET
   if (!secret && process.env.NODE_ENV === 'production') return null
+
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(secret || 'duramater-local-dev-secret'),

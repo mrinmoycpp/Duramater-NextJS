@@ -1,10 +1,8 @@
-import crypto from 'node:crypto'
-
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7
 
 function base64url(input) {
-  return Buffer.from(input)
-    .toString('base64')
+  const str = typeof input === 'string' ? input : String.fromCharCode(...new Uint8Array(input))
+  return btoa(str)
     .replace(/=/g, '')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -12,7 +10,9 @@ function base64url(input) {
 
 function decodeBase64url(input) {
   const normalized = input.replace(/-/g, '+').replace(/_/g, '/')
-  return Buffer.from(normalized, 'base64').toString('utf8')
+  const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+  const binary = atob(padded)
+  return binary
 }
 
 function getAuthSecret() {
@@ -24,7 +24,7 @@ function getAuthSecret() {
   return 'duramater-local-dev-secret'
 }
 
-export function signAuthToken(user) {
+async function signAuthToken(user) {
   const now = Math.floor(Date.now() / 1000)
   const header = { alg: 'HS256', typ: 'JWT' }
   const payload = {
@@ -33,16 +33,28 @@ export function signAuthToken(user) {
     exp: now + TOKEN_TTL_SECONDS,
   }
 
-  const unsigned = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`
-  const signature = crypto
-    .createHmac('sha256', getAuthSecret())
-    .update(unsigned)
-    .digest('base64url')
+  const headerEncoded = base64url(JSON.stringify(header))
+  const payloadEncoded = base64url(JSON.stringify(payload))
+  const unsigned = `${headerEncoded}.${payloadEncoded}`
 
-  return `${unsigned}.${signature}`
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(getAuthSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign(
+    'HMAC',
+    key,
+    new TextEncoder().encode(unsigned)
+  )
+
+  return `${unsigned}.${base64url(signature)}`
 }
 
-export function verifyAuthToken(token) {
+async function verifyAuthToken(token) {
   if (!token || typeof token !== 'string') return null
 
   const parts = token.split('.')
@@ -50,16 +62,29 @@ export function verifyAuthToken(token) {
 
   const [header, payload, signature] = parts
   const unsigned = `${header}.${payload}`
-  const expected = crypto
-    .createHmac('sha256', getAuthSecret())
-    .update(unsigned)
-    .digest('base64url')
 
-  const provided = Buffer.from(signature)
-  const valid = Buffer.from(expected)
-  if (provided.length !== valid.length || !crypto.timingSafeEqual(provided, valid)) {
-    return null
-  }
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(getAuthSecret()),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['verify']
+  )
+
+  const signatureBytes = new Uint8Array(
+    atob(signature.replace(/-/g, '+').replace(/_/g, '/'))
+      .split('')
+      .map(c => c.charCodeAt(0))
+  )
+
+  const isValid = await crypto.subtle.verify(
+    'HMAC',
+    key,
+    signatureBytes,
+    new TextEncoder().encode(unsigned)
+  )
+
+  if (!isValid) return null
 
   try {
     const data = JSON.parse(decodeBase64url(payload))
@@ -69,3 +94,5 @@ export function verifyAuthToken(token) {
     return null
   }
 }
+
+export { signAuthToken, verifyAuthToken }

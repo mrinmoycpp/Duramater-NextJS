@@ -62,7 +62,7 @@ export async function GET(request) {
     if (!userRes.ok) return redirectWithError(request)
 
     const profile = await userRes.json()
-    const token = signAuthToken({
+    const token = await signAuthToken({
       id: profile.sub,
       sub: profile.sub,
       email: profile.email,

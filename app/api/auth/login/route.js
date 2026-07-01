@@ -26,7 +26,7 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
   }
 
-  const token = signAuthToken(user)
+  const token = await signAuthToken(user)
   const response = NextResponse.json({ token, user })
   setAuthCookie(response, token)
   return response
